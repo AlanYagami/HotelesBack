@@ -31,4 +31,7 @@ public class APIResponse {
         this.error = true;
         this.status = status;
     }
+
+    public APIResponse(String operaciónExitosa, String token, boolean b, HttpStatus httpStatus) {
+    }
 }
