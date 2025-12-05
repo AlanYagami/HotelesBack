@@ -15,14 +15,26 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class MainSecurity {
+    String RECEPCION ="ROLE_RECEPCION";
+    String CAMARERA="ROLE_CAMARERA";
+
+    private final  String[] RECEPCION_LIST={};
+    private final String[] CAMARERA_LIST={};
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(c->c.configurationSource(corsRegistry()))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/**").permitAll()
-                        .anyRequest().authenticated()
-                );
+                .authorizeHttpRequests(auth -> {
+                    auth
+                            .requestMatchers("/api/auth/**").permitAll();
+                    for (String url : RECEPCION_LIST) {
+                        auth.requestMatchers(url).hasAuthority(RECEPCION);
+                    }
+                    for (String url : CAMARERA_LIST) {
+                        auth.requestMatchers(url).hasAuthority(CAMARERA);
+                    }
+                      auth .anyRequest().authenticated();
+                });
 
         return http.build();
     }
