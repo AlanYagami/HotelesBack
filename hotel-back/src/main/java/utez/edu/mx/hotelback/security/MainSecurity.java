@@ -26,7 +26,7 @@ public class MainSecurity {
                 .cors(c->c.configurationSource(corsRegistry()))
                 .authorizeHttpRequests(auth -> {
                     auth
-                            .requestMatchers("/api/auth/**").permitAll();
+                            .requestMatchers("/api/auth/**","/api/users").permitAll();
                     for (String url : RECEPCION_LIST) {
                         auth.requestMatchers(url).hasAuthority(RECEPCION);
                     }

@@ -1,11 +1,14 @@
 package utez.edu.mx.hotelback.utils;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.http.HttpStatus;
 
 @Getter
 @Setter
+
 public class APIResponse {
     private String message;
     private Object data;
@@ -32,6 +35,10 @@ public class APIResponse {
         this.status = status;
     }
 
-    public APIResponse(String operaciónExitosa, String token, boolean b, HttpStatus httpStatus) {
+    public APIResponse(String message, Object data, boolean error, HttpStatus status) {
+        this.message = message;
+        this.data = data;
+        this.error = error;
+        this.status = status;
     }
 }

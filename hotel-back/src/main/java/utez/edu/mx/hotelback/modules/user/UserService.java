@@ -8,6 +8,7 @@ import utez.edu.mx.hotelback.modules.user.dto.UserCreateDTO;
 import utez.edu.mx.hotelback.modules.user.dto.UserDTO;
 import utez.edu.mx.hotelback.modules.user.dto.UserUpdateDTO;
 import utez.edu.mx.hotelback.utils.APIResponse;
+import utez.edu.mx.hotelback.utils.PasswordEncoder;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -87,11 +88,12 @@ public class UserService {
                 body = new APIResponse("Ya existe un usuario con ese email", true, HttpStatus.BAD_REQUEST);
                 return new ResponseEntity<>(body, body.getStatus());
             }
+            String encryptedPass = PasswordEncoder.encodePassword(dto.getPassword());
 
             User u = new User();
             u.setUsername(dto.getUsername());
             u.setEmail(dto.getEmail());
-            u.setPassword(dto.getPassword()); // Aquí deberías encriptar la contraseña
+            u.setPassword(encryptedPass); // Aquí deberías encriptar la contraseña
             u.setRole(dto.getRole());
             userRepository.saveAndFlush(u);
 

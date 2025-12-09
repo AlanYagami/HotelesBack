@@ -5,6 +5,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import utez.edu.mx.hotelback.modules.auth.dto.LoginRequestDTO;
+import utez.edu.mx.hotelback.modules.auth.dto.LoginResponseDTO;
 import utez.edu.mx.hotelback.modules.user.User;
 import utez.edu.mx.hotelback.modules.user.UserRepository;
 import utez.edu.mx.hotelback.security.jwt.JWTUtils;
@@ -37,7 +38,10 @@ private final JWTUtils jwtUtils;
 
             UserDetails ud = udService.loadUserByUsername(found.getUsername());
             String token = jwtUtils.generateToken(ud);
-            return new APIResponse("Operación exitosa",token,false,HttpStatus.OK);
+            LoginResponseDTO responseDTO = new LoginResponseDTO(token,
+                    found.getId(),found.getUsername(),found.getRole().toString());
+
+            return new APIResponse("Operación exitosa",responseDTO,false,HttpStatus.OK);
         }catch (Exception ex){
             ex.printStackTrace();
             return new APIResponse("Eror al iniciar sesión",
