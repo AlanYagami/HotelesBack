@@ -23,7 +23,7 @@ public class UDService  implements UserDetailsService {
         User found = userRepository.findByUsername(username).orElse(null);
         if (found == null) throw new UsernameNotFoundException("Usuario no encontrado");
 
-        GrantedAuthority authority= new SimpleGrantedAuthority(found.getRole().getName());
+        GrantedAuthority authority= new SimpleGrantedAuthority("ROLE_" + found.getRole().getName());
         return new org.springframework.security.core.userdetails.User(
                 found.getUsername(),
                 found.getPassword(),

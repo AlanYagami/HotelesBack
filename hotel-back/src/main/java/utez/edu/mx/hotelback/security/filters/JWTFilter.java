@@ -1,10 +1,13 @@
 package utez.edu.mx.hotelback.security.filters;
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -14,9 +17,11 @@ import utez.edu.mx.hotelback.security.jwt.JWTUtils;
 import utez.edu.mx.hotelback.security.jwt.UDService;
 
 import java.io.IOException;
+import java.util.Collections;
 
 @Component
 public class JWTFilter extends OncePerRequestFilter {
+
     private final UDService udService;
     private final JWTUtils jwtUtils;
 
@@ -26,30 +31,49 @@ public class JWTFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        final String AUTHORIZATION_HEADER = request.getHeader("Authorization");
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain)
+            throws ServletException, IOException {
+
+        final String authHeader = request.getHeader("Authorization");
         String username = null;
         String token = null;
 
-        if (AUTHORIZATION_HEADER != null&& AUTHORIZATION_HEADER.startsWith("Bearer ")) {
-            token = AUTHORIZATION_HEADER.substring(7);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
             username = jwtUtils.extractUsername(token);
-
         }
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() ==null){
+
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
             UserDetails userDetails = udService.loadUserByUsername(username);
-            if (jwtUtils.validateToken(token,userDetails)){
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null,userDetails.getAuthorities()
-                );
+
+            if (jwtUtils.validateToken(token, userDetails)) {
+
+                Claims claims = jwtUtils.extractAllClaims(token);
+                String role = claims.get("role", String.class); // RECEPCION o CAMARERA
+
+                String springRole = "ROLE_" + role; // Convertir al formato de Spring
+
+                GrantedAuthority authority = new SimpleGrantedAuthority(springRole);
+
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                Collections.singleton(authority)
+                        );
 
                 authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request));
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
+
         filterChain.doFilter(request, response);
     }
 }
