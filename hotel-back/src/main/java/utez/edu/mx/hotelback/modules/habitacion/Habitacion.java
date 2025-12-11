@@ -30,6 +30,10 @@ public class Habitacion {
     @Column(nullable = false)
     private EstadoHabitacion estado;
 
+    @Lob
+    @Column(name = "qr", columnDefinition = "LONGBLOB")
+    private byte[] qr;
+
     @OneToMany(mappedBy = "habitacion")
     private List<AsignacionHabitacion> asignaciones;
 

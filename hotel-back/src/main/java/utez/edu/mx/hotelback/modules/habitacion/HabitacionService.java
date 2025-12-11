@@ -9,6 +9,11 @@ import utez.edu.mx.hotelback.modules.habitacion.dto.HabitacionCreateDTO;
 import utez.edu.mx.hotelback.modules.habitacion.dto.HabitacionDTO;
 import utez.edu.mx.hotelback.modules.habitacion.dto.HabitacionUpdateEstadoDTO;
 import utez.edu.mx.hotelback.utils.APIResponse;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
+import java.io.ByteArrayOutputStream;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -32,6 +37,7 @@ public class HabitacionService {
                 h.getId(),
                 h.getNumero(),
                 h.getEstado(),
+                h.getQr(),
                 h.getAsignaciones() != null && !h.getAsignaciones().isEmpty()
         );
     }
@@ -88,7 +94,17 @@ public class HabitacionService {
             Habitacion h = new Habitacion();
             h.setNumero(dto.getNumero());
             h.setEstado(dto.getEstado() != null ? dto.getEstado() : EstadoHabitacion.LIMPIA);
-            habitacionRepository.saveAndFlush(h);
+
+            h = habitacionRepository.saveAndFlush(h);
+
+
+            byte[] qrImage = generarQrCode(h.getId().toString(), 300, 300);
+
+
+            h.setQr(qrImage);
+
+
+            habitacionRepository.save(h);
 
             body = new APIResponse("Operación exitosa", convertEntityToDTO(h), HttpStatus.CREATED);
         } catch (Exception ex) {
@@ -97,7 +113,17 @@ public class HabitacionService {
         }
         return new ResponseEntity<>(body, body.getStatus());
     }
+    private byte[] generarQrCode(String texto, int ancho, int alto) throws Exception {
+        QRCodeWriter qrCodeWriter = new QRCodeWriter();
 
+        BitMatrix bitMatrix = qrCodeWriter.encode(texto, BarcodeFormat.QR_CODE, ancho, alto);
+
+
+        ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
+        MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
+
+        return pngOutputStream.toByteArray();
+    }
     @Transactional(rollbackFor = {SQLException.class, Exception.class})
     public ResponseEntity<APIResponse> updateEstado(HabitacionUpdateEstadoDTO dto) {
         APIResponse body;

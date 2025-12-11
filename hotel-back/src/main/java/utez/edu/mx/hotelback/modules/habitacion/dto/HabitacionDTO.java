@@ -17,5 +17,6 @@ public class HabitacionDTO {
     private UUID id;
     private String numero;
     private EstadoHabitacion estado;
+    private byte[] qr;
     private boolean tieneAsignacion;
 }
