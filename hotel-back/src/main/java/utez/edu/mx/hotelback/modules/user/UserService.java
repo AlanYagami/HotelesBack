@@ -4,11 +4,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import utez.edu.mx.hotelback.modules.asignacion.AsignacionHabitacionRepository;
 import utez.edu.mx.hotelback.modules.user.dto.UserCreateDTO;
 import utez.edu.mx.hotelback.modules.user.dto.UserDTO;
 import utez.edu.mx.hotelback.modules.user.dto.UserUpdateDTO;
 import utez.edu.mx.hotelback.utils.APIResponse;
-import utez.edu.mx.hotelback.utils.PasswordEncoder;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -19,9 +19,12 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final AsignacionHabitacionRepository asignacionRepository;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository,
+                       AsignacionHabitacionRepository asignacionRepository) {
         this.userRepository = userRepository;
+        this.asignacionRepository = asignacionRepository;
     }
 
     private UserDTO convertEntityToDTO(User u) {
@@ -88,12 +91,11 @@ public class UserService {
                 body = new APIResponse("Ya existe un usuario con ese email", true, HttpStatus.BAD_REQUEST);
                 return new ResponseEntity<>(body, body.getStatus());
             }
-            String encryptedPass = PasswordEncoder.encodePassword(dto.getPassword());
 
             User u = new User();
             u.setUsername(dto.getUsername());
             u.setEmail(dto.getEmail());
-            u.setPassword(encryptedPass); // Aquí deberías encriptar la contraseña
+            u.setPassword(dto.getPassword()); // Aquí deberías encriptar la contraseña
             u.setRole(dto.getRole());
             userRepository.saveAndFlush(u);
 
@@ -147,11 +149,25 @@ public class UserService {
         User found = userRepository.findById(id).orElse(null);
         if (found != null) {
             try {
+                // PRIMERO: Eliminar todas las asignaciones activas de este usuario
+                asignacionRepository.findByUsuarioIdAndActivaTrue(id).forEach(asignacion -> {
+                    asignacionRepository.delete(asignacion);
+                });
+
+                // También eliminar las inactivas si las hay
+                asignacionRepository.deleteAll(
+                        asignacionRepository.findAll().stream()
+                                .filter(a -> a.getUsuario().getId().equals(id))
+                                .toList()
+                );
+
+                // SEGUNDO: Ahora sí eliminar el usuario
                 userRepository.deleteById(id);
+
                 body = new APIResponse("Operación exitosa", HttpStatus.OK);
             } catch (Exception ex) {
                 ex.printStackTrace();
-                body = new APIResponse("No se pudo eliminar al usuario", true, HttpStatus.INTERNAL_SERVER_ERROR);
+                body = new APIResponse("No se pudo eliminar al usuario: " + ex.getMessage(), true, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } else {
             body = new APIResponse("El usuario no existe", true, HttpStatus.NOT_FOUND);

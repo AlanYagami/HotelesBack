@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import utez.edu.mx.hotelback.modules.asignacion.AsignacionHabitacionRepository;
 import utez.edu.mx.hotelback.modules.habitacion.dto.HabitacionCreateDTO;
 import utez.edu.mx.hotelback.modules.habitacion.dto.HabitacionDTO;
 import utez.edu.mx.hotelback.modules.habitacion.dto.HabitacionUpdateEstadoDTO;
@@ -18,9 +19,12 @@ import java.util.UUID;
 public class HabitacionService {
 
     private final HabitacionRepository habitacionRepository;
+    private final AsignacionHabitacionRepository asignacionRepository;
 
-    public HabitacionService(HabitacionRepository habitacionRepository) {
+    public HabitacionService(HabitacionRepository habitacionRepository,
+                             AsignacionHabitacionRepository asignacionRepository) {
         this.habitacionRepository = habitacionRepository;
+        this.asignacionRepository = asignacionRepository;
     }
 
     private HabitacionDTO convertEntityToDTO(Habitacion h) {
@@ -125,11 +129,25 @@ public class HabitacionService {
         Habitacion found = habitacionRepository.findById(id).orElse(null);
         if (found != null) {
             try {
+                // PRIMERO: Eliminar todas las asignaciones de esta habitación
+                asignacionRepository.findByHabitacionIdAndActivaTrue(id).forEach(asignacion -> {
+                    asignacionRepository.delete(asignacion);
+                });
+
+                // También eliminar las inactivas si las hay
+                asignacionRepository.deleteAll(
+                        asignacionRepository.findAll().stream()
+                                .filter(a -> a.getHabitacion().getId().equals(id))
+                                .toList()
+                );
+
+                // SEGUNDO: Ahora sí eliminar la habitación
                 habitacionRepository.deleteById(id);
+
                 body = new APIResponse("Operación exitosa", HttpStatus.OK);
             } catch (Exception ex) {
                 ex.printStackTrace();
-                body = new APIResponse("No se pudo eliminar la habitación", true, HttpStatus.INTERNAL_SERVER_ERROR);
+                body = new APIResponse("No se pudo eliminar la habitación: " + ex.getMessage(), true, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } else {
             body = new APIResponse("La habitación no existe", true, HttpStatus.NOT_FOUND);

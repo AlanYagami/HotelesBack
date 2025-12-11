@@ -41,6 +41,7 @@ public class MainSecurity {
                 .authorizeHttpRequests(auth -> {
                     // Endpoints públicos
                     auth.requestMatchers("/api/auth/**").permitAll();
+                    auth.requestMatchers("/api/reportes/imagen/**").permitAll();
 
                     // Endpoints protegidos por rol
                     auth.requestMatchers("/api/users/**").hasAnyAuthority(RECEPCION, "ROLE_GERENTE");
@@ -51,7 +52,7 @@ public class MainSecurity {
                     // Cualquier otra petición requiere autenticación
                     auth.anyRequest().authenticated();
                 })
-                // ESTO ES LO MÁS IMPORTANTE: Agregar el filtro JWT
+                // Agregar el filtro JWT
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -70,10 +71,10 @@ public class MainSecurity {
     private CorsConfigurationSource corsRegistry() {
         CorsConfiguration conf = new CorsConfiguration();
 
-        conf.setAllowedOriginPatterns(List.of("*")); // Cambiado de setAllowedOrigins
+        conf.setAllowedOriginPatterns(List.of("*"));
         conf.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        conf.setAllowedHeaders(List.of("*")); // Permitir todos los headers
-        conf.setAllowCredentials(true); // Cambiado a true
+        conf.setAllowedHeaders(List.of("*"));
+        conf.setAllowCredentials(true);
         conf.setExposedHeaders(List.of("Authorization"));
 
         UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();

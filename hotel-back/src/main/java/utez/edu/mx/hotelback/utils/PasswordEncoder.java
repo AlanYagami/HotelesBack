@@ -12,4 +12,13 @@ public class PasswordEncoder {
         return new BCryptPasswordEncoder().matches(rawPassword, encodedPassword);
 
     }
+
+    public static void main(String[] args) {
+        String password = "password123";
+        String encodedPassword = encodePassword(password);
+        System.out.println("Encoded password: " + encodedPassword);
+
+        boolean isMatch = verifyPassword(password, encodedPassword);
+        System.out.println("Password match: " + isMatch);
+    }
 }
