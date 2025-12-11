@@ -2,6 +2,7 @@ package utez.edu.mx.hotelback.modules.user;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import utez.edu.mx.hotelback.modules.asignacion.AsignacionHabitacionRepository;
@@ -20,11 +21,13 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final AsignacionHabitacionRepository asignacionRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository,
-                       AsignacionHabitacionRepository asignacionRepository) {
+                       AsignacionHabitacionRepository asignacionRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.asignacionRepository = asignacionRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     private UserDTO convertEntityToDTO(User u) {
@@ -95,7 +98,7 @@ public class UserService {
             User u = new User();
             u.setUsername(dto.getUsername());
             u.setEmail(dto.getEmail());
-            u.setPassword(dto.getPassword()); // Aquí deberías encriptar la contraseña
+            u.setPassword(passwordEncoder.encode(dto.getPassword())); // Aquí deberías encriptar la contraseña
             u.setRole(dto.getRole());
             userRepository.saveAndFlush(u);
 
