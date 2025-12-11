@@ -9,11 +9,18 @@ import utez.edu.mx.hotelback.modules.habitacion.dto.HabitacionCreateDTO;
 import utez.edu.mx.hotelback.modules.habitacion.dto.HabitacionDTO;
 import utez.edu.mx.hotelback.modules.habitacion.dto.HabitacionUpdateEstadoDTO;
 import utez.edu.mx.hotelback.utils.APIResponse;
+
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -26,10 +33,20 @@ public class HabitacionService {
     private final HabitacionRepository habitacionRepository;
     private final AsignacionHabitacionRepository asignacionRepository;
 
+    // ➤ Nuevo directorio para guardar los QR
+    private static final String QR_UPLOAD_DIR = "uploads/qrs/";
+
     public HabitacionService(HabitacionRepository habitacionRepository,
                              AsignacionHabitacionRepository asignacionRepository) {
         this.habitacionRepository = habitacionRepository;
         this.asignacionRepository = asignacionRepository;
+
+        // Crear directorio de QR si no existe
+        try {
+            Files.createDirectories(Paths.get(QR_UPLOAD_DIR));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private HabitacionDTO convertEntityToDTO(Habitacion h) {
@@ -97,12 +114,14 @@ public class HabitacionService {
 
             h = habitacionRepository.saveAndFlush(h);
 
-
+            // ➤ Generar QR
             byte[] qrImage = generarQrCode(h.getId().toString(), 300, 300);
-
-
             h.setQr(qrImage);
 
+            // ➤ Guardar el QR como archivo físico
+            String fileName = h.getId().toString() + ".png";
+            Path filePath = Paths.get(QR_UPLOAD_DIR + fileName);
+            Files.write(filePath, qrImage);
 
             habitacionRepository.save(h);
 
@@ -113,17 +132,17 @@ public class HabitacionService {
         }
         return new ResponseEntity<>(body, body.getStatus());
     }
+
     private byte[] generarQrCode(String texto, int ancho, int alto) throws Exception {
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
-
         BitMatrix bitMatrix = qrCodeWriter.encode(texto, BarcodeFormat.QR_CODE, ancho, alto);
-
 
         ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream();
         MatrixToImageWriter.writeToStream(bitMatrix, "PNG", pngOutputStream);
 
         return pngOutputStream.toByteArray();
     }
+
     @Transactional(rollbackFor = {SQLException.class, Exception.class})
     public ResponseEntity<APIResponse> updateEstado(HabitacionUpdateEstadoDTO dto) {
         APIResponse body;
@@ -167,7 +186,15 @@ public class HabitacionService {
                                 .toList()
                 );
 
-                // SEGUNDO: Ahora sí eliminar la habitación
+                // SEGUNDO: Eliminar el archivo de QR si existe
+                try {
+                    Path qrPath = Paths.get(QR_UPLOAD_DIR + id.toString() + ".png");
+                    Files.deleteIfExists(qrPath);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                // TERCERO: Eliminar la habitación
                 habitacionRepository.deleteById(id);
 
                 body = new APIResponse("Operación exitosa", HttpStatus.OK);
